@@ -19,8 +19,7 @@ function writeToFile(path, content) {
 }
 
 function generatePokeTestForConv1Input() {
-  const format = (data, i, j) =>
-    `c.io.input2BP(${i})(${j}).poke(${data * 100}.S)`;
+  const format = (data, i, j) => `c.io.input(${i})(${j}).poke(${data * 10000}.S)`;
 
   readData("./inputs/conv1Input.json").then((dataRows) => {
     let output = "";
@@ -36,7 +35,7 @@ function generatePokeTestForConv1Input() {
 
 function generatePokeTestForConv1Kernel() {
   const format = (data, i, j, k) =>
-    `c.io.conv1Kernel2BP(${i})(${j})(${k}).poke(${data * 100}.S)`;
+    `c.io.conv1Kernel(${i})(${j})(${k}).poke(${data * 100}.S)`;
 
   readData("./inputs/conv1Kernel.json").then((channels) => {
     let output = "";
@@ -54,7 +53,7 @@ function generatePokeTestForConv1Kernel() {
 
 function generatePokeTestForPrimaryCapsKernel() {
   const format = (data, i, j, k) =>
-    `c.io.primaryCapsKernel2BP(${i})(${j})(${k}).poke(${data * 100}.S)`;
+    `c.io.primaryCapsKernel(${i})(${j})(${k}).poke(${data * 100}.S)`;
 
   readData("./inputs/primaryCapsKernel.json").then((channels) => {
     let output = "";
@@ -72,7 +71,7 @@ function generatePokeTestForPrimaryCapsKernel() {
 
 function generatePokeTestForDigitCapsWeightMatrixes() {
   const format = (data, i, j, k, l) =>
-    `c.io.digitCapsWeightMatrixes2BP(${i})(${j})(${k})(${l}).poke(${data}.S)`;
+    `c.io.digitCapsWeightMatrixes(${i})(${j})(${k})(${l}).poke(${data * 100}.S)`;
 
   readData("./inputs/digitCapsWeightMatrixes2BP.json").then(
     (weightMatrixes) => {
@@ -84,7 +83,7 @@ function generatePokeTestForDigitCapsWeightMatrixes() {
           for (let k = 0; k < weightMatrixRows.length; k++) {
             const weightMatrixRow = weightMatrixRows[k];
             for (let l = 0; l < weightMatrixRow.length; l++) {
-              output += format(weightMatrixRow[l] * 100, i, j, k, l) + "\n";
+              output += format(weightMatrixRow[l], i, j, k, l) + "\n";
             }
           }
         }
@@ -115,7 +114,7 @@ function generateRandomNumbers(count, digits, isSigned = false) {
 }
 
 // generateRandomNumbers(64, 1, true);
-// generatePokeTestForConv1Input();
+generatePokeTestForConv1Input();
 // generatePokeTestForConv1Kernel();
 // generatePokeTestForPrimaryCapsKernel();
 // generatePokeTestForDigitCapsWeightMatrixes();
