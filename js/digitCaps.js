@@ -1,9 +1,9 @@
 const fs = require("fs");
 
-const INPUT_COUNT = 4;
-const INPUT_SIZE = 2;
-const WEIGHT_WIDTH = 4;
-const NUMBER_OF_WEIGHTS_PER_EACH_INPUT = 2;
+const INPUT_COUNT = 1152;
+const INPUT_SIZE = 8;
+const WEIGHT_WIDTH = 16;
+const NUMBER_OF_WEIGHTS_PER_EACH_INPUT = 10;
 const DYNAMIC_ROUTING_ROUNDS = 3;
 
 async function readData(path) {
@@ -28,12 +28,12 @@ async function resetBiases() {
   const biasesCount = INPUT_COUNT * NUMBER_OF_WEIGHTS_PER_EACH_INPUT;
   const biases = Array(biasesCount).fill(0);
   const jsonFormattedBiases = await JSON.stringify(biases);
-  writeToFile("../inputs/biases.json", jsonFormattedBiases);
+  writeToFile("../real-scale-inputs/digitCapsBiases.json", jsonFormattedBiases);
 }
 
 async function softmax() {
   const output = [];
-  const biases = await readData("../inputs/biases.json");
+  const biases = await readData("../real-scale-inputs/digitCapsBiases.json");
   const expos = biases.map((bias) => Math.exp(bias));
   const sumOfExpos = expos.reduce((sum, c) => sum + c, 0);
   for (let i = 0; i < biases.length; i++) {
@@ -41,14 +41,17 @@ async function softmax() {
     output.push(result);
   }
   const jsonFormattedOutput = await JSON.stringify(output);
-  writeToFile("../inputs/couplingCoefficients.json", jsonFormattedOutput);
+  writeToFile(
+    "../real-scale-inputs/couplingCoefficients.json",
+    jsonFormattedOutput
+  );
 }
 
 async function makePredictionVector() {
-  const inputs = await readData(
-    "../inputs/primaryCapsOutputAfterEncapsulation.json"
+  const inputs = await readData("../real-scale-outputs/digitCapsInputs.json");
+  const weights = await readData(
+    "../real-scale-inputs/digitCapsWeightMatrixesReal.json"
   );
-  const weights = await readData("../inputs/digitCapsWeightMatrixes2BP.json");
   const output = [];
   for (let i = 0; i < inputs.length; i++) {
     output.push([]);
@@ -57,21 +60,26 @@ async function makePredictionVector() {
       for (let k = 0; k < WEIGHT_WIDTH; k++) {
         let sum = 0;
         for (let l = 0; l < INPUT_SIZE; l++) {
-          sum += inputs[i][l] * weights[i][j][l][k];
+          sum += inputs[i][l] * weights[j][l][k];
         }
         output[i][j].push(sum);
       }
     }
   }
   const jsonFormattedOutput = await JSON.stringify(output);
-  writeToFile("../inputs/predictionVectors.json", jsonFormattedOutput);
+  writeToFile(
+    "../real-scale-inputs/predictionVectors.json",
+    jsonFormattedOutput
+  );
 }
 
 async function calculateWeightedSum() {
   const couplingCoefficients = await readData(
-    "../inputs/couplingCoefficients.json"
+    "../real-scale-inputs/couplingCoefficients.json"
   );
-  const predictionVectors = await readData("../inputs/predictionVectors.json");
+  const predictionVectors = await readData(
+    "../real-scale-inputs/predictionVectors.json"
+  );
   const output = [];
   for (let i = 0; i < predictionVectors.length; i++) {
     output.push([]);
@@ -86,11 +94,11 @@ async function calculateWeightedSum() {
     }
   }
   const jsonFormattedOutput = await JSON.stringify(output);
-  writeToFile("../inputs/weightedSums.json", jsonFormattedOutput);
+  writeToFile("../real-scale-inputs/weightedSums.json", jsonFormattedOutput);
 }
 
 async function calculateSumOfWeightedSums() {
-  const weightedSums = await readData("../inputs/weightedSums.json");
+  const weightedSums = await readData("../real-scale-inputs/weightedSums.json");
   const output = [];
   for (let i = 0; i < NUMBER_OF_WEIGHTS_PER_EACH_INPUT; i++) {
     output.push([]);
@@ -103,11 +111,14 @@ async function calculateSumOfWeightedSums() {
     }
   }
   const jsonFormattedOutput = await JSON.stringify(output);
-  writeToFile("../inputs/sumOfWeightedSums.json", jsonFormattedOutput);
+  writeToFile(
+    "../real-scale-inputs/sumOfWeightedSums.json",
+    jsonFormattedOutput
+  );
 }
 
 async function squash() {
-  const vectors = await readData("../inputs/sumOfWeightedSums.json");
+  const vectors = await readData("../real-scale-inputs/sumOfWeightedSums.json");
   const output = [];
   for (let i = 0; i < vectors.length; i++) {
     output.push([]);
@@ -124,12 +135,14 @@ async function squash() {
     }
   }
   const jsonFormattedOutput = await JSON.stringify(output);
-  writeToFile("../inputs/squashes.json", jsonFormattedOutput);
+  writeToFile("../real-scale-inputs/squashes.json", jsonFormattedOutput);
 }
 
 async function agreement() {
-  const predictionVectors = await readData("../inputs/predictionVectors.json");
-  const squashes = await readData("../inputs/squashes.json");
+  const predictionVectors = await readData(
+    "../real-scale-inputs/predictionVectors.json"
+  );
+  const squashes = await readData("../real-scale-inputs/squashes.json");
   const output = [];
   for (let i = 0; i < INPUT_COUNT; i++) {
     for (let j = 0; j < NUMBER_OF_WEIGHTS_PER_EACH_INPUT; j++) {
@@ -141,31 +154,40 @@ async function agreement() {
     }
   }
   const jsonFormattedOutput = await JSON.stringify(output);
-  writeToFile("../inputs/agreements.json", jsonFormattedOutput);
+  writeToFile("../real-scale-inputs/agreements.json", jsonFormattedOutput);
 }
 
 async function calculateNextBiases() {
-  const biases = await readData("../inputs/biases.json");
-  const agreements = await readData("../inputs/agreements.json");
+  const biases = await readData("../real-scale-inputs/digitCapsBiases.json");
+  const agreements = await readData("../real-scale-inputs/agreements.json");
   const output = [];
   for (let i = 0; i < biases.length; i++) {
     const result = biases[i] + agreements[i];
     output.push(result);
   }
   const jsonFormattedOutput = await JSON.stringify(output);
-  writeToFile("../inputs/biases.json", jsonFormattedOutput);
+  writeToFile("../real-scale-inputs/digitCapsBiases.json", jsonFormattedOutput);
 }
 
 async function calculateSquaredVectorLengths() {
-  const vectors = await readData("../inputs/squashes.json");
+  const vectors = await readData("../real-scale-inputs/squashes.json");
   const output = [];
   for (let i = 0; i < vectors.length; i++) {
     output.push(
       vectors[i].map((vec) => vec ** 2).reduce((acc, v) => acc + v, 0)
     );
   }
+
+  console.log(
+    "Max Class Is: " +
+      output.indexOf(output.reduce((a, b) => Math.max(a, b), -Infinity))
+  );
+
   const jsonFormattedOutput = await JSON.stringify(output);
-  writeToFile("../outputs/digitCapsOutput.json", jsonFormattedOutput);
+  writeToFile(
+    "../real-scale-outputs/digitCapsOutput.json",
+    jsonFormattedOutput
+  );
 }
 
 (async () => {
