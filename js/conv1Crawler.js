@@ -16,6 +16,15 @@ async function readData(path) {
   return await JSON.parse(data);
 }
 
+function dec2Bin(bits, number) {
+  const numberBin = number >>> 0;
+  const binary = numberBin.toString(2);
+  if (number < 0) {
+    return binary.slice(-bits);
+  }
+  return binary.padStart(bits, 0);
+}
+
 function crawl(input, kernel, bias, channelNumber, inputY, inputX) {
   let output = 0;
   for (let i = 0; i < KERNEL_HEIGHT; i++) {
@@ -49,6 +58,40 @@ async function reformatConv1Kernel() {
   });
 }
 
+async function getBinaryFileOfConv1Kernel() {
+  const kernels = await readData("../real-scale-inputs/conv1Kernel.json");
+  let output = "";
+  for (let c = 0; c < CHANNEL_COUNT; c++) {
+    for (let i = 0; i < KERNEL_HEIGHT; i++) {
+      for (let j = 0; j < KERNEL_WIDTH; j++) {
+        output += dec2Bin(24, kernels[c][i][j] * 1000000) + "\n";
+      }
+    }
+  }
+  fs.writeFile(
+    "../real-scale-outputs/conv1KernelsBinary.txt",
+    output,
+    (err) => {
+      if (err) {
+        console.error(err);
+      }
+    }
+  );
+}
+
+async function getBinaryFileOfConv1Bias() {
+  const biases = await readData("../real-scale-inputs/conv1Bias.json");
+  let output = "";
+  for (let c = 0; c < CHANNEL_COUNT; c++) {
+    output += dec2Bin(22, biases[c] * 1000000) + "\n";
+  }
+  fs.writeFile("../real-scale-outputs/conv1BiasesBinary.txt", output, (err) => {
+    if (err) {
+      console.error(err);
+    }
+  });
+}
+
 async function computeConv1Output() {
   let output = [];
 
@@ -74,4 +117,6 @@ async function computeConv1Output() {
 }
 
 // reformatConv1Kernel();
-computeConv1Output();
+// getBinaryFileOfConv1Kernel();
+getBinaryFileOfConv1Bias();
+// computeConv1Output();

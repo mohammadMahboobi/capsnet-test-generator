@@ -117,34 +117,86 @@ function generateRandomNumbers(count, digits, isSigned = false) {
 }
 
 function generateVerilogInputDeclaration(bits, width, height) {
+  let counter = 0;
   let output = `reg [${bits - 1}:0] `;
   for (let i = 0; i < height; i++) {
     for (let j = 0; j < width; j++) {
+      counter += 1;
       output +=
         `io_input_${i}_${j}` +
-        (i === height - 1 && j === width - 1 ? ";" : ", ") +
-        ((i !== 0 && j === 0) || j === 5 ? "\n" : "");
+        (i === height - 1 && j === width - 1 ? ";" : ", ");
+      if (counter === 5) {
+        output += "\n";
+        counter = 0;
+      }
     }
   }
   writeToFile("./verilog-test-bench/declaration/input-declaration.txt", output);
 }
 
 function generateVerilogConv1KernelDeclaration(bits, channels, width, height) {
+  let counter = 0;
   let output = `reg [${bits - 1}:0] `;
   for (let i = 0; i < channels; i++) {
     for (let j = 0; j < height; j++) {
       for (let k = 0; k < width; k++) {
+        counter += 1;
         output +=
-          (k === 0 ? "\n" : "") +
           `io_conv1Kernel_${i}_${j}_${k}` +
           (i === channels - 1 && j === height - 1 && k === width - 1
             ? ";"
             : ", ");
+        if (counter === 5) {
+          output += "\n";
+          counter = 0;
+        }
       }
     }
   }
   writeToFile(
     "./verilog-test-bench/declaration/conv1Kernel-declaration.txt",
+    output
+  );
+}
+
+function generateVerilogConv1BiasDeclaration(bits, channels) {
+  let counter = 0;
+  let output = `reg [${bits - 1}:0] `;
+  for (let i = 0; i < channels; i++) {
+    counter += 1;
+    output += `io_bias_${i}` + (i === channels - 1 ? ";" : ", ");
+    if (counter === 7) {
+      output += "\n";
+      counter = 0;
+    }
+  }
+  writeToFile(
+    "./verilog-test-bench/declaration/conv1Bias-declaration.txt",
+    output
+  );
+}
+
+function generateVerilogConv1OutputDeclaration(bits, channels, width, height) {
+  let counter = 0;
+  let output = `reg [${bits - 1}:0] `;
+  for (let i = 0; i < channels; i++) {
+    for (let j = 0; j < height; j++) {
+      for (let k = 0; k < width; k++) {
+        counter += 1;
+        output +=
+          `io_output_${i}_${j}_${k}` +
+          (i === channels - 1 && j === height - 1 && k === width - 1
+            ? ";"
+            : ", ");
+        if (counter === 5) {
+          output += "\n";
+          counter = 0;
+        }
+      }
+    }
+  }
+  writeToFile(
+    "./verilog-test-bench/declaration/conv1Output-declaration.txt",
     output
   );
 }
@@ -223,9 +275,9 @@ function generateVerilogOutputDeclaration(bits, count) {
 
 function generateVerilogInputInitialization(bits) {
   const format = (data, i, j) =>
-    `io_input_${i}_${j} = ${bits}'d${data * 10000};`;
+    `io_input_${i}_${j} = ${bits}'d${Math.floor(data * 1000000)};`;
 
-  readData("./inputs/conv1Input.json").then((dataRows) => {
+  readData("./real-scale-inputs/conv1Input.json").then((dataRows) => {
     let output = "";
     for (let i = 0; i < dataRows.length; i++) {
       const row = dataRows[i];
@@ -242,11 +294,11 @@ function generateVerilogInputInitialization(bits) {
 
 function generateVerilogConv1KernelInitialization(bits) {
   const format = (data, i, j, k) =>
-    `io_conv1Kernel_${i}_${j}_${k} = ${data < 0 ? "-" : ""}${bits}'d${
-      Math.abs(data) * 10000
-    };`;
+    `io_conv1Kernel_${i}_${j}_${k} = ${
+      data < 0 ? "-" : ""
+    }${bits}'d${Math.floor(Math.abs(data) * 1000000)};`;
 
-  readData("./inputs/conv1Kernel.json").then((channels) => {
+  readData("./real-scale-inputs/conv1Kernel.json").then((channels) => {
     let output = "";
     for (let channel = 0; channel < channels.length; channel++) {
       for (let row = 0; row < channels[channel].length; row++) {
@@ -258,6 +310,24 @@ function generateVerilogConv1KernelInitialization(bits) {
     }
     writeToFile(
       "./verilog-test-bench/initialization/conv1Kernel-initialization.txt",
+      output
+    );
+  });
+}
+
+function generateVerilogConv1BiasInitialization(bits) {
+  const format = (data, i) =>
+    `io_bias_${i} = ${data < 0 ? "-" : ""}${bits}'d${Math.floor(
+      Math.abs(data) * 1000000
+    )};`;
+
+  readData("./real-scale-inputs/conv1Bias.json").then((channels) => {
+    let output = "";
+    for (let channel = 0; channel < channels.length; channel++) {
+      output += format(channels[channel], channel) + "\n";
+    }
+    writeToFile(
+      "./verilog-test-bench/initialization/conv1Bias-initialization.txt",
       output
     );
   });
@@ -320,12 +390,15 @@ function generateVerilogDigitCapsWeightMatrixesInitialization(bits) {
 // generatePokeTestForConv1Kernel();
 // generatePokeTestForPrimaryCapsKernel();
 // generatePokeTestForDigitCapsWeightMatrixes();
-// generateVerilogInputDeclaration(19, 10, 10);
-// generateVerilogConv1KernelDeclaration(19, 2, 4, 4);
+// generateVerilogInputDeclaration(20, 28, 28);
+// generateVerilogConv1KernelDeclaration(24, 256, 9, 9);
+// generateVerilogConv1BiasDeclaration(22, 256);
+// generateVerilogConv1OutputDeclaration(44, 256, 20, 20);
 // generateVerilogPrimaryCapsKernelDeclaration(22, 2, 4, 4);
 // generateVerilogDigitCapsWeightMatrixesDeclaration(20, 4, 2, 2, 4);
 // generateVerilogOutputDeclaration(31, 2);
-// generateVerilogInputInitialization(19);
-// generateVerilogConv1KernelInitialization(19);
+// generateVerilogInputInitialization(20);
+generateVerilogConv1BiasInitialization(22);
+// generateVerilogConv1KernelInitialization(24);
 // generateVerilogPrimaryCapsKernelInitialization(22);
 // generateVerilogDigitCapsWeightMatrixesInitialization(20);
